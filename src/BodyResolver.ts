@@ -1,7 +1,17 @@
-import {Query, Resolver, Mutation, Arg, ObjectType, Field} from 'type-graphql'
 import { hash, compare } from 'bcryptjs';
-import {sign} from 'jsonwebtoken';
 import { User } from "./entity/User";
+import { MyContext } from "./MyContext";
+import { createAccessToken, createRefreshToken } from './auth';
+import {Query, 
+  Resolver, 
+  Mutation, 
+  Arg, 
+  ObjectType, 
+  Field, 
+  Ctx,
+  UseMiddleware
+} from 'type-graphql'
+import { isAuthorized } from './isAuthorized';
 
 @ObjectType()
 class LoginResponse {
@@ -16,6 +26,16 @@ export class BodyResolver {
         return 'hi!';
     }
 
+    @Query(() => String)
+    @UseMiddleware(isAuthorized)
+    bye(
+      @Ctx() {payload}: MyContext
+    ) {
+        console.log(payload);
+        return `your ID is : ${payload!.userId}`;
+    }
+
+
     @Query(() => [User])
     users() {
         // .find() takes all users from database 
@@ -26,6 +46,7 @@ export class BodyResolver {
     async login(
         @Arg('email') email: string,
         @Arg('password') password: string,
+        @Ctx() {res}: MyContext
     ): Promise<LoginResponse> {// checking for existence 
         const user = await User.findOne({where: {email}});
         
@@ -40,15 +61,18 @@ export class BodyResolver {
             throw  Error('the password you inserted is incorrect')
         }
 
-        // success to sign function 
+        // success to sign function  
+        res.cookie(
+         'jid', createRefreshToken(user),{ 
+           httpOnly: true
+        });
+
         return {
-            
-            accessToken: sign({userId: user.id, userEmail: user.email}, 'faiafj23ljlakw', {
-                expiresIn: "10m"
-            })
+            accessToken: createAccessToken(user)
         };
     }
-//////////////////////////////////////////////////////////
+
+
     @Mutation(() => Boolean)
     async register(
         @Arg('email') email: string,
