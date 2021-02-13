@@ -1,1 +1,1 @@
-Sweet, Sustainable , Secure  Authentication 
+A blank shell for simple, Secure Authentication  
