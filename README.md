@@ -1,1 +1,1 @@
-A blank shell for simple, Authentication  
+A shell for simple, Authentication  
